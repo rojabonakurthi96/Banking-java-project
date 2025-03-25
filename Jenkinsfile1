@@ -1,36 +1,46 @@
 pipeline {
     agent any
-    stages{
-        stage('Build Maven'){
-            steps{
-                git url:'https://github.com/akshu20791/Banking-java-project/', branch: "master"
-               sh 'mvn clean install'
-            }
-        }
-        stage('Build docker image'){
-            steps{
-                script{
-                    sh 'docker build -t akshu20791/endtoendproject31july:v1 .'
-                }
-            }
-        }
-          stage('Docker login') {
+
+    stages {
+        stage('Checkout the Code from GitHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-pwd', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-                    sh 'docker push akshu20791/endtoendproject31july:v1'
-                }
+                git url: 'https://github.com/rojabonakurthi96/Banking-java-project/'
+                echo 'GitHub repository checked out'
             }
         }
-        
-        
-        stage('Deploy to k8s'){
-            when{ expression {env.GIT_BRANCH == 'master'}}
-            steps{
-                script{
-                     kubernetesDeploy (configs: 'deploymentservice.yaml' ,kubeconfigId: 'k8sconfigpwd')
-                   
-                }
+
+        stage('Code Compilation') {
+            steps {
+                echo 'Starting compilation'
+                sh 'mvn compile'
+            }
+        }
+
+        stage('Code Testing') {
+            steps {
+                echo 'Running tests'
+                sh 'mvn test'
+            }
+        }
+
+        stage('QA Check (Checkstyle)') {
+            steps {
+                echo 'Running Checkstyle'
+                sh 'mvn checkstyle:checkstyle'
+            }
+        }
+
+        stage('Package Application') {
+            steps {
+                echo 'Packaging application'
+                sh 'mvn package'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image'
+                sh 'docker build -t myimg .'
             }
         }
     }
